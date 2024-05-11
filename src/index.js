@@ -7,9 +7,9 @@ pb.admins.authWithPassword("ithelper9@gmail.com", "allen@SqL123");
 // Create an instance of the Express application
 const app = express();
 
-app.get('/users/:username', async (req, res) => {
+app.get('/users', async (req, res) => {
     try {
-        const record = await pb.collection('users').getFirstListItem(`username="${req.params.username}"`, {});
+        const record = await pb.collection('users').getFullList({});
         res.json(record);
     } catch (err) {
         console.log(err);
@@ -17,9 +17,9 @@ app.get('/users/:username', async (req, res) => {
     }
 });
 
-app.get('/users', async (req, res) => {
+app.get('/users/:username', async (req, res) => {
     try {
-        const record = await pb.collection('users').getFullList({});
+        const record = await pb.collection('users').getFirstListItem(`username="${req.params.username}"`, {});
         res.json(record);
     } catch (err) {
         console.log(err);
@@ -37,6 +37,43 @@ app.post("/users/update/:username", async (req, res) => {
 
         if (record) {
             await pb.collection('users').update(record.id, data);
+        }
+
+        res.json(null)
+    } catch (err) {
+        console.log(err)
+        res.json(null)
+    }
+});
+
+app.get('/history', async (req, res) => {
+    try {
+        const record = await pb.collection('history').getFullList({});
+        res.json(record);
+    } catch (err) {
+        console.log(err);
+        res.json(null);
+    }
+});
+
+
+app.get('/history/:username', async (req, res) => {
+    try {
+        const record = await pb.collection('history').getFirstListItem(`username="${req.params.username}"`, {});
+        res.json(record);
+    } catch (err) {
+        console.log(err);
+        res.json(null);
+    }
+});
+
+app.post("/history/add", async (req, res) => {
+    try {
+        const data = JSON.parse(req.body);
+        try {
+            await pb.collection('history').create(data);
+        } catch (err) {
+            console.log(err)
         }
 
         res.json(null)
