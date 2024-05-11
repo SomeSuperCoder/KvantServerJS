@@ -1,11 +1,18 @@
 import express from "express";
 import PocketBase from "pocketbase";
+import nodemailer from "nodemailer";
+import fileUpload from 'express-fileupload';
 
 const pb = new PocketBase('http://127.0.0.1:8090');
 pb.admins.authWithPassword("ithelper9@gmail.com", "allen@SqL123");
 
 // Create an instance of the Express application
 const app = express();
+// Setup file upload functions
+app.use(fileUpload({
+    useTempFiles: true,
+    tempFileDir: '/tmp'
+}));
 
 app.get('/users', async (req, res) => {
     try {
@@ -149,6 +156,55 @@ app.get('/passwd', async (req, res) => {
         res.json(null);
     }
 });
+
+app.post('/send_mail', async (req, res) => {
+    console.log("We've got here!")
+    const to = req.query.to;
+    const subject = req.query.subject;
+    let data_file;
+    try {
+        data_file = req.files.data_file;
+    } catch (err) {
+        console.log(err);
+        res.json(null);
+    }
+
+    console.log(data_file)
+
+    const transporter = nodemailer.createTransport({
+        service: 'yandex',
+        auth: {
+          user: 'nchk-kvantomat@yandex.ru',
+          pass: 'ikwzkllrqrvdhjwz'
+        }
+    });
+
+    // Create an email message
+    const mailOptions = {
+        from: 'nchk-kvantomat@yandex.ru',
+        to: to,
+        subject: subject,
+        text: "",
+        attachments: [
+            {
+              filename: 'kavtomat_report.xlsx',
+              path: data_file.tempFilePath
+            }
+        ]
+    };
+
+    transporter.sendMail(mailOptions, function(error, info) {
+        if (error) {
+          console.log(error);
+          res.json(false);
+        } else {
+          console.log('Email sent: ' + info.response);
+          res.json(true);
+        }
+    });
+
+    res.json(true);
+})
 
 // Start the server
 app.listen(3000, () => {
