@@ -27,6 +27,16 @@ app.get('/users/:username', async (req, res) => {
     }
 });
 
+app.get('/users/id/:id', async (req, res) => {
+    try {
+        const record = await pb.collection('users').getFirstListItem(`id="${req.params.id}"`, {});
+        res.json(record);
+    } catch (err) {
+        console.log(err);
+        res.json(null);
+    }
+});
+
 app.post("/users/update/:username", async (req, res) => {
     const username = req.params.username;
 
