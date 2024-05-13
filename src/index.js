@@ -6,6 +6,37 @@ import fileUpload from 'express-fileupload';
 const pb = new PocketBase('http://127.0.0.1:8090');
 pb.admins.authWithPassword("ithelper9@gmail.com", "allen@SqL123");
 
+async function get_user(username) {
+    if (!username) {
+        return false;
+    }
+
+    try {
+        const record = await pb.collection('users').getFirstListItem(`username="${username}"`);
+        return record
+    } catch (err) {
+        console.log(`Error fetching user ${username}: ${err}`)
+        return null
+    }
+}
+
+async function admin_auth_check(username, password_hash) {
+    if (!username || !password_hash) {
+        return false;
+    }
+    if (username.length != 6) {
+        return false;
+    }
+
+    const user = await pb.collection("users").getFirstListItem(`username="${username} && password=${password_hash}"`);
+
+    if (!user) {
+        return false;
+    }
+
+    return true;
+}
+
 // Create an instance of the Express application
 const app = express();
 // Setup file upload functions
@@ -26,8 +57,7 @@ app.get('/users', async (req, res) => {
 
 app.get('/users/:username', async (req, res) => {
     try {
-        const record = await pb.collection('users').getFirstListItem(`username="${req.params.username}"`, {});
-        res.json(record);
+        res.json(get_user(req.params.username));
     } catch (err) {
         console.log(err);
         res.json(null);
@@ -47,10 +77,18 @@ app.get('/users/id/:id', async (req, res) => {
 app.post("/users/update/:username", async (req, res) => {
     const username = req.params.username;
 
+    const admin_username = req.query.username;
+    const admin_password_hash = req.query.password_hash;
+
+    if (!admin_auth_check(admin_username, admin_password_hash)) {
+        res.json(null);
+        return;
+    }
+
     try {
         const data = JSON.parse(req.body);
 
-        const record = await pb.collection('users').getFirstListItem(`username="${username}"`);
+        const record = await get_user(username);
 
         if (record) {
             await pb.collection('users').update(record.id, data);
@@ -76,7 +114,7 @@ app.get('/history', async (req, res) => {
 
 app.get('/history/:username', async (req, res) => {
     try {
-        const record = await pb.collection('history').getFirstListItem(`username="${req.params.username}"`, {});
+        const record = await get_user(req.params.username);
         res.json(record);
     } catch (err) {
         console.log(err);
@@ -85,6 +123,14 @@ app.get('/history/:username', async (req, res) => {
 });
 
 app.post("/history/add", async (req, res) => {
+    const admin_username = req.query.username;
+    const admin_password_hash = req.query.password_hash;
+
+    if (!admin_auth_check(admin_username, admin_password_hash)) {
+        res.json(null);
+        return;
+    }
+
     try {
         const data = JSON.parse(req.body);
         try {
@@ -158,6 +204,14 @@ app.get('/passwd', async (req, res) => {
 });
 
 app.post('/send_mail', async (req, res) => {
+    const admin_username = req.query.username;
+    const admin_password_hash = req.query.password_hash;
+
+    if (!admin_auth_check(admin_username, admin_password_hash)) {
+        res.json(null);
+        return;
+    }
+
     console.log("We've got here!")
     const to = req.query.to;
     const subject = req.query.subject;
